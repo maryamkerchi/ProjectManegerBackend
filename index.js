@@ -1,15 +1,22 @@
 // index.js
-const express = require("express");
-const app = express();
+import express from "express";
+import dotenv from "dotenv";
+import connectDB from "./db/index.js";
+import corsMiddleware from "./middleware/corsMiddleware.js";
+import userRoutes from "./routes/userRoutes.js";
 
-// یک route ساده
-app.get("/", (req, res) => {
-  res.send("Server is running!");
-});
+dotenv.config();
+connectDB();
 
-// پورت را از Render می‌گیرد
-const PORT = process.env.PORT || 3000;
+const app = express(); // ⚡ این خط فراموش شده
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// Middleware
+app.use(express.json());
+app.use(corsMiddleware);
+
+// Routes
+app.use("/api/users", userRoutes);
+
+// Start server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

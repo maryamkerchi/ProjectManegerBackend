@@ -1,10 +1,10 @@
-import User from "../models/User.js";
+import User from "../models/users.js";
 import jwt from "jsonwebtoken";
-import bcrypt from "bcryptjs";
+import bcrypt from "bcryptjs"; // for hash and compare
 
 // make JWT
 const generateToken = (id, role) => {
-  return jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: "30d" });
+  return jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: "8h" }); // make sign
 };
 
 // register user
@@ -14,20 +14,20 @@ export const registerUser = async (req, res) => {
 
     const userExists = await User.findOne({ email });
     if (userExists)
-      return res.status(400).json({ message: "User already exists" });
-
+      return res.status(400).json({ message: " This User already exists" });
+    //hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
-
+    //create new record in db
     const user = await User.create({
       firstName,
       lastName,
       email,
-      password: hashedPassword,
+      password: hashedPassword, //save hashed password
       role: role || "user",
       avatar,
     });
-
+    //return data  and jwt to client
     res.status(201).json({
       _id: user._id,
       firstName: user.firstName,
