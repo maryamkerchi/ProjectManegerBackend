@@ -10,7 +10,7 @@ export const createProject = async (req, res) => {
     const project = await Project.create({
       name,
       description,
-      status: status || "planning", // ⬅️ پیش‌فرض planning
+      status: status || "planning", //  planning
       createdBy: req.user._id,
       members: members || [],
       attachments: attachments || [],
