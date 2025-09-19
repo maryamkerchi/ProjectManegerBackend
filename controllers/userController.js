@@ -10,24 +10,28 @@ const generateToken = (id, role) => {
 // register user
 export const registerUser = async (req, res) => {
   try {
+    console.log("BODY:", req.body); // ← اینجا اول
     const { firstName, lastName, email, password, role, avatar } = req.body;
 
     const userExists = await User.findOne({ email });
     if (userExists)
-      return res.status(400).json({ message: " This User already exists" });
-    //hash password
+      return res.status(400).json({ message: "This User already exists" });
+
+    // hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
-    //create new record in db
+
+    // create new record in db
     const user = await User.create({
       firstName,
       lastName,
       email,
-      password: hashedPassword, //save hashed password
+      password: hashedPassword,
       role: role || "user",
       avatar,
     });
-    //return data  and jwt to client
+
+    // return data and JWT to client
     res.status(201).json({
       _id: user._id,
       firstName: user.firstName,
