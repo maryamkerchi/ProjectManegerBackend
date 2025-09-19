@@ -1,3 +1,5 @@
+import mongoose from "mongoose";
+
 const attachmentSchema = new mongoose.Schema(
   {
     worklog: {
