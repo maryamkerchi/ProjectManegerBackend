@@ -1,3 +1,5 @@
+//projectController.js
+
 import Project from "../models/projects.js";
 import User from "../models/users.js";
 import Attachment from "../models/attachments.js";
@@ -10,7 +12,7 @@ export const createProject = async (req, res) => {
     const project = await Project.create({
       name,
       description,
-      status: status || "planning", //  planning
+      status: status || "planning",
       createdBy: req.user._id,
       members: members || [],
       attachments: attachments || [],

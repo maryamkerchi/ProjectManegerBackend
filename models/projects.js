@@ -1,3 +1,5 @@
+//projects.js
+
 import mongoose from "mongoose";
 
 const projectSchema = new mongoose.Schema(
@@ -6,8 +8,8 @@ const projectSchema = new mongoose.Schema(
     description: String,
     status: {
       type: String,
-      enum: ["pending", "in-progress", "completed"],
-      default: "pending",
+      enum: ["pending", "in-progress", "planning", "completed"],
+      default: "planning",
     },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
