@@ -1,5 +1,3 @@
-//projectController.js
-
 import Project from "../models/projects.js";
 import User from "../models/users.js";
 import Attachment from "../models/attachments.js";
@@ -9,10 +7,14 @@ export const createProject = async (req, res) => {
   try {
     const { name, description, members, status, attachments } = req.body;
 
+    if (!status) {
+      return res.status(400).json({ message: "Status is required" });
+    }
+
     const project = await Project.create({
       name,
       description,
-      status: status || "planning",
+      status,
       createdBy: req.user._id,
       members: members || [],
       attachments: attachments || [],
@@ -55,7 +57,6 @@ export const getProjectById = async (req, res) => {
 
     if (!project) return res.status(404).json({ message: "Project not found" });
 
-    // only members or admin can access
     if (req.user.role !== "admin" && !project.members.includes(req.user._id)) {
       return res.status(403).json({ message: "Access denied" });
     }
@@ -71,12 +72,15 @@ export const updateProject = async (req, res) => {
   try {
     const { name, description, status } = req.body;
 
+    const validStatuses = ["pending", "in-progress", "completed"];
+    const projectStatus = validStatuses.includes(status) ? status : undefined;
+
     const project = await Project.findById(req.params.id);
     if (!project) return res.status(404).json({ message: "Project not found" });
 
     project.name = name || project.name;
     project.description = description || project.description;
-    project.status = status || project.status;
+    if (projectStatus) project.status = projectStatus;
 
     const updatedProject = await project.save();
     res.json(updatedProject);
@@ -143,7 +147,7 @@ export const addAttachmentToProject = async (req, res) => {
     if (!project) return res.status(404).json({ message: "Project not found" });
 
     const attachment = await Attachment.create({
-      worklog: null, // چون به Worklog وصل نیست
+      worklog: null,
       uploadedBy: req.user._id,
       fileUrl,
       fileName,

@@ -1,4 +1,4 @@
-//projects.js
+// models/projects.js
 
 import mongoose from "mongoose";
 
@@ -8,8 +8,8 @@ const projectSchema = new mongoose.Schema(
     description: String,
     status: {
       type: String,
-      enum: ["pending", "in-progress", "planning", "completed"],
-      default: "planning",
+      enum: ["pending", "in-progress", "completed"], // planning حذف شد
+      required: true, // باید حتماً انتخاب بشه
     },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
@@ -21,4 +21,7 @@ const projectSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-export default mongoose.model("Project", projectSchema);
+
+// جلوگیری از خطای "OverwriteModelError"
+export default mongoose.models.Project ||
+  mongoose.model("Project", projectSchema);
