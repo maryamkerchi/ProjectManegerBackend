@@ -25,7 +25,7 @@ userSchema.pre("save", async function (next) {
   }
 });
 
-// 🔹 Add a helper to check passwords during login
+//  Add a helper to check passwords during login
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
