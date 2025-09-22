@@ -103,9 +103,25 @@ export const updateUser = async (req, res) => {
     user.lastName = lastName || user.lastName;
     user.role = role || user.role;
     user.avatar = avatar || user.avatar;
+    // 🔹 Handle password update
+    if (password) {
+      user.password = password; // password should be hashed in your User model pre-save hook
+    }
 
     const updatedUser = await user.save();
-    res.json(updatedUser);
+
+    // 🔹 If password changed, issue new token
+    const token = generateToken(user._id);
+
+    res.json({
+      _id: updatedUser._id,
+      firstName: updatedUser.firstName,
+      lastName: updatedUser.lastName,
+      email: updatedUser.email,
+      role: updatedUser.role,
+      avatar: updatedUser.avatar,
+      token, // new JWT
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
