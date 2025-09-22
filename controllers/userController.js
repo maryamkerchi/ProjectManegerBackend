@@ -105,7 +105,8 @@ export const updateUser = async (req, res) => {
     user.avatar = avatar || user.avatar;
     // 🔹 Handle password update
     if (password) {
-      user.password = password; // password should be hashed in your User model pre-save hook
+      user.password = password;
+      // password should be hashed in your User model pre-save hook
     }
 
     const updatedUser = await user.save();
@@ -120,9 +121,11 @@ export const updateUser = async (req, res) => {
       email: updatedUser.email,
       role: updatedUser.role,
       avatar: updatedUser.avatar,
+
       token, // new JWT
     });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: error.message });
   }
 };
