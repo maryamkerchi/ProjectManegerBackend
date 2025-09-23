@@ -1,3 +1,4 @@
+//atachments.js
 import mongoose from "mongoose";
 
 const attachmentSchema = new mongoose.Schema(
@@ -16,8 +17,15 @@ const attachmentSchema = new mongoose.Schema(
     fileName: String,
     fileType: String,
     fileSize: Number,
+    type: {
+      type: String,
+      enum: ["task", "project"],
+      default: "task",
+    },
   },
   { timestamps: true }
 );
 
-export default mongoose.model("Attachment", attachmentSchema);
+// privent OverwriteModelError
+export default mongoose.models.Attachment ||
+  mongoose.model("Attachment", attachmentSchema);
