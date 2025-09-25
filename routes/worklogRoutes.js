@@ -1,3 +1,4 @@
+//worklogRoutes.js
 import express from "express";
 import {
   createWorklog,
@@ -8,11 +9,13 @@ import {
 } from "../controllers/worklogController.js";
 
 import { protect } from "../middleware/authMiddleware.js";
+import upload from "../middleware/uploadMiddleware.js"; // 👈 اضافه شد
 
 const router = express.Router();
 
-// Worklogs
-router.post("/", protect, createWorklog);
+// 📌 ایجاد worklog + آپلود فایل (اگه وجود داشت)
+router.post("/", protect, upload.single("file"), createWorklog);
+
 router.get("/task/:taskId", protect, getWorklogsByTask);
 router.get("/:id", protect, getWorklogById);
 router.put("/:id", protect, updateWorklog);
