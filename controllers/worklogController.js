@@ -1,7 +1,8 @@
-import Worklog from "../models/Worklog.js";
-import Task from "../models/Task.js";
+import Worklog from "../models/worklogs.js";
+import Task from "../models/tasks.js";
 
 // 📌 ایجاد Worklog
+
 export const createWorklog = async (req, res) => {
   try {
     const { taskId, statusChange, spentTime, comment } = req.body;
@@ -9,6 +10,7 @@ export const createWorklog = async (req, res) => {
     const task = await Task.findById(taskId);
     if (!task) return res.status(404).json({ message: "Task not found" });
 
+    // اول worklog ساخته میشه
     const worklog = await Worklog.create({
       task: taskId,
       user: req.user._id,
@@ -17,7 +19,23 @@ export const createWorklog = async (req, res) => {
       comment,
     });
 
-    res.status(201).json(worklog);
+    let attachment = null;
+
+    // اگه فایل آپلود شده بود
+    if (req.file) {
+      attachment = await Attachment.create({
+        worklog: worklog._id,
+        uploadedBy: req.user._id,
+        fileName: req.file.originalname,
+        fileUrl: `/uploads/${req.file.filename}`, // مسیر ذخیره فایل
+        type: "worklog",
+      });
+    }
+
+    res.status(201).json({
+      ...worklog.toObject(),
+      attachments: attachment ? [attachment] : [],
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
