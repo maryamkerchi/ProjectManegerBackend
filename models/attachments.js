@@ -19,7 +19,7 @@ const attachmentSchema = new mongoose.Schema(
     fileSize: Number,
     type: {
       type: String,
-      enum: ["task", "project"],
+      enum: ["task", "project", "worklog"],
       default: "task",
     },
   },

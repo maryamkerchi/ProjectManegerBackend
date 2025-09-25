@@ -19,10 +19,18 @@ const worklogSchema = new mongoose.Schema(
     },
     spentTime: Number,
     comment: String,
+
+    // 📌 اتصال به فایل‌های ضمیمه
+    attachments: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Attachment",
+      },
+    ],
   },
   { timestamps: true }
 );
 
-//  privent  OverwriteModelError
+// prevent OverwriteModelError
 export default mongoose.models.Worklog ||
   mongoose.model("Worklog", worklogSchema);

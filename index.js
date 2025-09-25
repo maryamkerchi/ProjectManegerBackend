@@ -8,6 +8,7 @@ import projectRoutes from "./routes/projectRoutes.js";
 import taskRoutes from "./routes/taskRoutes.js";
 import taskDetailRoutes from "./routes/taskDetailRoutes.js";
 import worklogRoutes from "./routes/worklogRoutes.js"; // 👈 اینو اضافه کن
+import attachmentRoutes from "./routes/attachmentRoutes.js";
 
 dotenv.config();
 connectDB();
@@ -18,12 +19,15 @@ const app = express();
 app.use(express.json());
 app.use(corsMiddleware);
 
+// برای دسترسی به فایل‌های آپلودی
+app.use("/uploads", express.static("uploads"));
 // Routes
 app.use("/api/users", userRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/taskDetail", taskDetailRoutes);
 app.use("/api/worklogs", worklogRoutes); // 👈 اینو اضافه کن
+app.use("/api/attachments", attachmentRoutes);
 
 // Start server
 const PORT = process.env.PORT || 5000;
