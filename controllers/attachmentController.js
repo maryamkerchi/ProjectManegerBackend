@@ -1,7 +1,9 @@
-import Attachment from "../models/Attachment.js";
-import Worklog from "../models/Worklog.js";
+import Attachment from "../models/attachments.js";
+import Worklog from "../models/worklogs.js";
+import path from "path";
+import fs from "fs";
 
-// 📌 آپلود فایل
+// 📌 آپلود فایل برای یک Worklog
 export const uploadAttachment = async (req, res) => {
   try {
     const { worklogId } = req.body;
@@ -9,21 +11,22 @@ export const uploadAttachment = async (req, res) => {
     const worklog = await Worklog.findById(worklogId);
     if (!worklog) return res.status(404).json({ message: "Worklog not found" });
 
-    // اینجا فرض می‌کنیم فایل از طریق multer آپلود شده
     const file = req.file;
     if (!file) return res.status(400).json({ message: "No file uploaded" });
 
     const attachment = await Attachment.create({
       worklog: worklogId,
-      user: req.user._id,
-      filename: file.originalname,
-      path: file.path,
-      mimetype: file.mimetype,
-      size: file.size,
+      uploadedBy: req.user._id,
+      fileName: file.originalname,
+      fileUrl: file.path,
+      fileType: file.mimetype,
+      fileSize: file.size,
+      type: "worklog",
     });
 
     res.status(201).json(attachment);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -32,33 +35,53 @@ export const uploadAttachment = async (req, res) => {
 export const getAttachmentsByWorklog = async (req, res) => {
   try {
     const attachments = await Attachment.find({ worklog: req.params.worklogId })
-      .populate("user", "firstName lastName email")
+      .populate("uploadedBy", "firstName lastName email")
       .sort({ createdAt: -1 });
 
     res.json(attachments);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: error.message });
   }
 };
 
-// 📌 حذف فایل
+// 📌 حذف یک فایل
 export const deleteAttachment = async (req, res) => {
   try {
     const attachment = await Attachment.findById(req.params.id);
     if (!attachment)
       return res.status(404).json({ message: "Attachment not found" });
 
-    // فقط صاحب فایل یا ادمین بتونه حذف کنه
     if (
-      attachment.user.toString() !== req.user._id.toString() &&
+      attachment.uploadedBy.toString() !== req.user._id.toString() &&
       req.user.role !== "admin"
     ) {
       return res.status(403).json({ message: "Not authorized" });
     }
 
+    // حذف فایل از سرور
+    if (fs.existsSync(attachment.fileUrl)) {
+      fs.unlinkSync(attachment.fileUrl);
+    }
+
     await attachment.deleteOne();
     res.json({ message: "Attachment removed" });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: error.message });
+  }
+};
+
+// 📌 دانلود فایل
+export const downloadAttachment = async (req, res) => {
+  try {
+    const attachment = await Attachment.findById(req.params.id);
+    if (!attachment) return res.status(404).send("File not found");
+
+    const filePath = path.join(process.cwd(), attachment.fileUrl);
+    res.download(filePath, attachment.fileName);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error downloading file");
   }
 };

@@ -1,8 +1,8 @@
 import Worklog from "../models/worklogs.js";
 import Task from "../models/tasks.js";
+import Attachment from "../models/attachments.js"; // اضافه شد
 
 // 📌 ایجاد Worklog
-
 export const createWorklog = async (req, res) => {
   try {
     const { taskId, statusChange, spentTime, comment } = req.body;
@@ -10,7 +10,7 @@ export const createWorklog = async (req, res) => {
     const task = await Task.findById(taskId);
     if (!task) return res.status(404).json({ message: "Task not found" });
 
-    // اول worklog ساخته میشه
+    // 1️⃣ ثبت Worklog
     const worklog = await Worklog.create({
       task: taskId,
       user: req.user._id,
@@ -21,22 +21,33 @@ export const createWorklog = async (req, res) => {
 
     let attachment = null;
 
-    // اگه فایل آپلود شده بود
+    // 2️⃣ اگه فایل آپلود شده بود
     if (req.file) {
-      attachment = await Attachment.create({
+      const attachment = await Attachment.create({
         worklog: worklog._id,
         uploadedBy: req.user._id,
         fileName: req.file.originalname,
-        fileUrl: `/uploads/${req.file.filename}`, // مسیر ذخیره فایل
+        fileUrl: `/uploads/${req.file.filename}`,
         type: "worklog",
       });
+
+      worklog.attachments.push(attachment._id); // 👈 وصل کردن فایل به worklog
+      await worklog.save();
     }
 
+    // 3️⃣ آپدیت Task status اگر statusChange پر شده باشد
+    if (statusChange) {
+      task.status = statusChange;
+      await task.save();
+    }
+
+    // 4️⃣ پاسخ شامل worklog و attachment
     res.status(201).json({
       ...worklog.toObject(),
       attachments: attachment ? [attachment] : [],
     });
   } catch (error) {
+    console.error("❌ Error creating worklog:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -46,6 +57,7 @@ export const getWorklogsByTask = async (req, res) => {
   try {
     const worklogs = await Worklog.find({ task: req.params.taskId })
       .populate("user", "firstName lastName email")
+      .populate("attachments", "fileName fileUrl createdAt")
       .sort({ createdAt: -1 });
 
     res.json(worklogs);
@@ -88,6 +100,15 @@ export const updateWorklog = async (req, res) => {
     worklog.statusChange = statusChange || worklog.statusChange;
     worklog.spentTime = spentTime || worklog.spentTime;
     worklog.comment = comment || worklog.comment;
+
+    // اگر statusChange پر شده باشد، Task هم آپدیت شود
+    if (statusChange) {
+      const task = await Task.findById(worklog.task);
+      if (task) {
+        task.status = statusChange;
+        await task.save();
+      }
+    }
 
     const updatedWorklog = await worklog.save();
     res.json(updatedWorklog);
