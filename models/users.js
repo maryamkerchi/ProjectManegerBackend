@@ -22,6 +22,9 @@ userSchema.pre("save", async function (next) {
     next(err);
   }
 });
+
+const User = mongoose.model("User", userSchema);
+
 //  Add a helper to check passwords during login
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
