@@ -194,7 +194,6 @@ export const searchTasks = async (req, res) => {
       ],
     };
 
-    // نقش کاربر admin همه، user فقط خودش
     if (req.user.role !== "admin") {
       filter.assignedTo = req.user._id;
     }
