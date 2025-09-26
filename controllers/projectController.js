@@ -1,3 +1,4 @@
+//projectController.js
 import Project from "../models/projects.js";
 import User from "../models/users.js";
 import Attachment from "../models/attachments.js";
@@ -180,6 +181,43 @@ export const removeAttachmentFromProject = async (req, res) => {
     await Attachment.findByIdAndDelete(attachmentId);
 
     res.json({ message: "Attachment removed" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+// search projects by name or description
+export const searchProjects = async (req, res) => {
+  try {
+    const { query } = req.query;
+    if (!query) {
+      return res.status(400).json({ message: "Query is required" });
+    }
+
+    const filter = {
+      $or: [
+        { name: { $regex: query.trim(), $options: "i" } },
+        { description: { $regex: query.trim(), $options: "i" } },
+      ],
+    };
+
+    let projects;
+
+    if (req.user.role === "admin") {
+      // admin see all projects
+      projects = await Project.find(filter)
+        .populate("members", "firstName lastName email")
+        .populate("attachments");
+    } else {
+      // user just see own project
+      projects = await Project.find({
+        ...filter,
+        members: req.user._id,
+      })
+        .populate("members", "firstName lastName email")
+        .populate("attachments");
+    }
+
+    res.json(projects);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
