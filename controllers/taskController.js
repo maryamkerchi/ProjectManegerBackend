@@ -180,3 +180,37 @@ export const updateTaskStatus = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+//search according title and description
+export const searchTasks = async (req, res) => {
+  try {
+    const { query } = req.query;
+    if (!query) return res.status(400).json({ message: "Query is required" });
+
+    let filter = {
+      $or: [
+        { title: { $regex: query, $options: "i" } },
+        { description: { $regex: query, $options: "i" } },
+      ],
+    };
+
+    // نقش کاربر admin همه، user فقط خودش
+    if (req.user.role !== "admin") {
+      filter.assignedTo = req.user._id;
+    }
+
+    console.log("Search query:", query);
+    console.log("Mongo filter:", JSON.stringify(filter, null, 2));
+
+    const tasks = await Task.find(filter)
+      .populate("assignedTo", "firstName lastName email")
+      .populate("projectId", "name");
+
+    console.log("Tasks found:", tasks.length);
+    res.json(tasks);
+  } catch (error) {
+    console.error("Error in searchTasks:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+//test

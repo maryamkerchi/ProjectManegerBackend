@@ -1,6 +1,5 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
-
 const userSchema = new mongoose.Schema(
   {
     firstName: { type: String, required: true },
@@ -12,8 +11,7 @@ const userSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
-// 🔹 Hash password before saving
+// :small_blue_diamond: Hash password before saving
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   try {
@@ -24,11 +22,12 @@ userSchema.pre("save", async function (next) {
     next(err);
   }
 });
+
 const User = mongoose.model("User", userSchema);
 
 //  Add a helper to check passwords during login
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
-
 export default mongoose.model("User", userSchema);
+//nn
