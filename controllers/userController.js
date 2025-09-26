@@ -105,7 +105,9 @@ export const updateUser = async (req, res) => {
     user.avatar = avatar || user.avatar;
     // 🔹 Handle password update
     if (password) {
-      user.password = password;
+      const salt = await bcrypt.genSalt(10);
+      user.password = await bcrypt.hash(password, salt);
+
       // password should be hashed in your User model pre-save hook
     }
 
