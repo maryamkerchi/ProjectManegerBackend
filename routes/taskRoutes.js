@@ -19,15 +19,12 @@ const router = express.Router();
 router.post("/", protect, createTask);
 router.get("/", protect, getTasks);
 
-// 🔹 جستجوی تسک‌ها باید بالای /:id باشه
 router.get("/find", protect, searchTasks);
 
-// دریافت تسک بر اساس id
 router.get("/:id", protect, getTaskById);
 router.put("/:id", protect, updateTask);
 router.delete("/:id", protect, deleteTask);
 
-// عملیات خاص
 router.put("/:id/assign", protect, admin, assignTask);
 router.put("/:id/status", protect, updateTaskStatus);
 
