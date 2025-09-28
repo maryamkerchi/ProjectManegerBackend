@@ -17,7 +17,7 @@ export const createProject = async (req, res) => {
       description,
       status,
       createdBy: req.user._id,
-      members: members || [],
+      members: members || [], // ← همین خط مهم است
       attachments: attachments || [],
     });
 
@@ -35,11 +35,13 @@ export const getProjects = async (req, res) => {
     if (req.user.role === "admin") {
       projects = await Project.find()
         .populate("members", "firstName lastName email")
-        .populate("attachments");
+        .populate("attachments")
+        .populate("createdBy", "firstName lastName email"); // اضافه شد
     } else {
       projects = await Project.find({ members: req.user._id })
         .populate("members", "firstName lastName email")
-        .populate("attachments");
+        .populate("attachments")
+        .populate("createdBy", "firstName lastName email"); // اضافه شد
     }
 
     res.json(projects);
@@ -71,7 +73,7 @@ export const getProjectById = async (req, res) => {
 // update project
 export const updateProject = async (req, res) => {
   try {
-    const { name, description, status } = req.body;
+    const { name, description, status, members } = req.body; // اضافه شد members
 
     const validStatuses = ["pending", "in-progress", "completed"];
     const projectStatus = validStatuses.includes(status) ? status : undefined;
@@ -83,13 +85,18 @@ export const updateProject = async (req, res) => {
     project.description = description || project.description;
     if (projectStatus) project.status = projectStatus;
 
+    if (Array.isArray(members)) {
+      project.members = members; // اعضا هم آپدیت می‌شوند
+    }
+
     const updatedProject = await project.save();
+    // populate members برای نمایش کامل در front-end
+    await updatedProject.populate("members", "firstName lastName email");
     res.json(updatedProject);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
-
 // delete project
 export const deleteProject = async (req, res) => {
   try {
