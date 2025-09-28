@@ -54,13 +54,16 @@ export const getProjects = async (req, res) => {
 export const getProjectById = async (req, res) => {
   try {
     const project = await Project.findById(req.params.id)
-      .populate("members", "firstName lastName email")
+      .populate("members", "firstName lastName email role") // اضافه کردن role
       .populate("createdBy", "firstName lastName email")
       .populate("attachments");
 
     if (!project) return res.status(404).json({ message: "Project not found" });
 
-    if (req.user.role !== "admin" && !project.members.includes(req.user._id)) {
+    if (
+      req.user.role !== "admin" &&
+      !project.members.some((m) => m._id.equals(req.user._id))
+    ) {
       return res.status(403).json({ message: "Access denied" });
     }
 
