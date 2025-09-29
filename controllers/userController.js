@@ -125,4 +125,14 @@ export const deleteUser = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-//nn
+
+export const getOnlyUsers = async (req, res) => {
+  try {
+    const users = await User.find({ role: "user" }).select(
+      "firstName lastName email role"
+    );
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
