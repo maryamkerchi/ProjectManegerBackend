@@ -18,11 +18,13 @@ router.post("/register", registerUser);
 router.post("/", protect, admin, registerUser);
 router.post("/login", loginUser);
 
-// user managment
+// user management
 router.get("/", protect, admin, getUsers);
 router.get("/:id", protect, getUserById);
 router.put("/:id", protect, updateUser);
 router.delete("/:id", protect, admin, deleteUser);
-router.get("/onlyUsers", authMiddleware, getOnlyUsers);
+
+//
+router.get("/onlyUsers", protect, getOnlyUsers); // 👈 اصلاح شد
 
 export default router;
