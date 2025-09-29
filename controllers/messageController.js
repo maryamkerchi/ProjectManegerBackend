@@ -110,14 +110,26 @@ export const getInboxMessages = async (req, res) => {
     const messages = await Message.find({
       $or: [
         { type: "general" },
-        { type: "project", project: { $in: req.user.projects } },
+        { type: "project" },
         { type: "direct", recipient: req.user._id },
       ],
     })
       .populate("sender", "firstName lastName email role")
+      .populate("recipient", "firstName lastName email role")
+      .populate("project", "name members") // populate members فقط برای پیام پروژه
       .sort({ createdAt: -1 });
 
-    res.json(messages);
+    // فقط پیام‌های project رو فیلتر کن برای بررسی عضویت
+    const filtered = messages.filter((msg) => {
+      if (msg.type === "project") {
+        return msg.project?.members.some(
+          (memberId) => memberId.toString() === req.user._id.toString()
+        );
+      }
+      return true; // پیام‌های general و direct بدون تغییر
+    });
+
+    res.json(filtered);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -128,10 +140,21 @@ export const getSentMessages = async (req, res) => {
   try {
     const messages = await Message.find({ sender: req.user._id })
       .populate("recipient", "firstName lastName email role")
-      .populate("project", "name")
+      .populate("project", "name members") // populate members برای پروژه
       .sort({ createdAt: -1 });
 
-    res.json(messages);
+    // فقط پیام‌های project رو بررسی کن که project هنوز موجود باشه
+    const filtered = messages.map((msg) => {
+      if (msg.type === "project") {
+        return {
+          ...msg._doc,
+          projectName: msg.project?.name || "Unknown", // نمایش نام پروژه یا Unknown
+        };
+      }
+      return msg;
+    });
+
+    res.json(filtered);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
