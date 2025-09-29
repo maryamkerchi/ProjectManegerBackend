@@ -1,12 +1,12 @@
-const cors = require("cors");
+import cors from "cors";
 
 const corsMiddleware = cors({
   origin: [
-    "http://localhost:5173", //locally for test
-    "https://projectmanagementfrontend-spda.onrender.com", // front adress
+    "http://localhost:5174",
+    "https://projectmanagementfrontend-spda.onrender.com",
   ],
-  methods: ["GET", "POST", "PUT", "DELETE"],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   credentials: true,
 });
 
-module.exports = corsMiddleware;
+export default corsMiddleware;
