@@ -26,7 +26,7 @@ export const sendGeneralMessage = async (req, res) => {
   }
 };
 
-// send project message(just admin)
+// send project message (just admin)
 export const sendProjectMessage = async (req, res) => {
   try {
     if (req.user.role !== "admin") {
@@ -70,7 +70,7 @@ export const sendDirectMessage = async (req, res) => {
     if (!recipient)
       return res.status(404).json({ message: "Recipient not found" });
 
-    // if sender has user role ,just can send message to other user with user role
+    // user can only message other users
     if (req.user.role === "user" && recipient.role !== "user") {
       return res.status(403).json({ message: "Cannot message admins" });
     }
@@ -87,15 +87,16 @@ export const sendDirectMessage = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-//send automatic message when task asign to user
-export const sendTaskAssignedMessage = async (task) => {
+
+// send automatic message when task is assigned
+export const sendTaskAssignedMessage = async (task, senderId) => {
   try {
     if (!task.assignedTo) return;
 
     const content = `You have been assigned a new task: ${task.title}`;
 
     await Message.create({
-      sender: task.createdBy || task.projectId.createdBy,
+      sender: senderId, // ✅ must provide sender
       type: "direct",
       content,
       recipient: task.assignedTo,
@@ -104,6 +105,7 @@ export const sendTaskAssignedMessage = async (task) => {
     console.error("Error sending task assigned message:", error);
   }
 };
+
 // get inbox messages
 export const getInboxMessages = async (req, res) => {
   try {
@@ -116,17 +118,17 @@ export const getInboxMessages = async (req, res) => {
     })
       .populate("sender", "firstName lastName email role")
       .populate("recipient", "firstName lastName email role")
-      .populate("project", "name members") // populate members فقط برای پیام پروژه
+      .populate("project", "name members")
       .sort({ createdAt: -1 });
 
-    // فقط پیام‌های project رو فیلتر کن برای بررسی عضویت
+    // filter project messages to only include those where user is a member
     const filtered = messages.filter((msg) => {
       if (msg.type === "project") {
         return msg.project?.members.some(
           (memberId) => memberId.toString() === req.user._id.toString()
         );
       }
-      return true; // پیام‌های general و direct بدون تغییر
+      return true;
     });
 
     res.json(filtered);
@@ -140,15 +142,14 @@ export const getSentMessages = async (req, res) => {
   try {
     const messages = await Message.find({ sender: req.user._id })
       .populate("recipient", "firstName lastName email role")
-      .populate("project", "name members") // populate members برای پروژه
+      .populate("project", "name members")
       .sort({ createdAt: -1 });
 
-    // فقط پیام‌های project رو بررسی کن که project هنوز موجود باشه
     const filtered = messages.map((msg) => {
       if (msg.type === "project") {
         return {
           ...msg._doc,
-          projectName: msg.project?.name || "Unknown", // نمایش نام پروژه یا Unknown
+          projectName: msg.project?.name || "Unknown",
         };
       }
       return msg;
@@ -159,3 +160,4 @@ export const getSentMessages = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+//tt
