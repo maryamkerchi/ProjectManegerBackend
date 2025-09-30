@@ -84,20 +84,21 @@ export const updateUser = async (req, res) => {
     const { firstName, lastName, role, avatar, password } = req.body;
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: "User not found" });
+
     user.firstName = firstName || user.firstName;
     user.lastName = lastName || user.lastName;
     user.role = role || user.role;
     user.avatar = avatar || user.avatar;
-    // :small_blue_diamond: Handle password update
-    if (password) {
-      const salt = await bcrypt.genSalt(10);
-      user.password = await bcrypt.hash(password, salt);
 
-      // password should be hashed in your User model pre-save hook
+    // فقط plain password بده، pre-save خودش hash می‌کنه
+    if (password) {
+      user.password = password;
     }
+
     const updatedUser = await user.save();
-    // :small_blue_diamond: If password changed, issue new token
-    const token = generateToken(user._id);
+
+    const token = generateToken(updatedUser._id, updatedUser.role);
+
     res.json({
       _id: updatedUser._id,
       firstName: updatedUser.firstName,
@@ -105,7 +106,7 @@ export const updateUser = async (req, res) => {
       email: updatedUser.email,
       role: updatedUser.role,
       avatar: updatedUser.avatar,
-      token, // new JWT
+      token,
     });
   } catch (error) {
     console.error(error);
@@ -134,3 +135,4 @@ export const getOnlyUsers = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+//test
