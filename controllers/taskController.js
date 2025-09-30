@@ -3,7 +3,7 @@ import Project from "../models/projects.js";
 import User from "../models/users.js";
 import { sendTaskAssignedMessage } from "./messageController.js";
 
-// Create task
+// 📌 Create task
 export const createTask = async (req, res) => {
   try {
     const {
@@ -42,9 +42,9 @@ export const createTask = async (req, res) => {
       status,
     });
 
-    //  Auto-send message
+    // Auto-send message
     if (assignedTo) {
-      await sendTaskAssignedMessage(task);
+      await sendTaskAssignedMessage(task, req.user._id);
     }
 
     res.status(201).json(task);
@@ -53,7 +53,7 @@ export const createTask = async (req, res) => {
   }
 };
 
-// 📌 آپدیت تسک
+// 📌 Update task
 export const updateTask = async (req, res) => {
   try {
     const { title, description, priority, dueDate, types, status, assignedTo } =
@@ -69,7 +69,7 @@ export const updateTask = async (req, res) => {
     if (types) task.types = types;
     if (status) task.status = status;
 
-    // اگر assignedTo تغییر کرده، باید assignedUserName رو هم آپدیت کنیم
+    // اگر assignedTo تغییر کرده، پیام اتوماتیک ارسال شود
     if (assignedTo && assignedTo !== String(task.assignedTo)) {
       const user = await User.findById(assignedTo);
       if (!user) return res.status(404).json({ message: "User not found" });
@@ -77,8 +77,7 @@ export const updateTask = async (req, res) => {
       task.assignedTo = assignedTo;
       task.assignedUserName = `${user.firstName} ${user.lastName}`;
 
-      // 📌 ارسال پیام اتوماتیک بعد از تغییر تخصیص
-      await sendTaskAssignedMessage(task);
+      await sendTaskAssignedMessage(task, req.user._id);
     }
 
     const updatedTask = await task.save();
@@ -88,7 +87,7 @@ export const updateTask = async (req, res) => {
   }
 };
 
-// 📌 assign کردن تسک (فقط تغییر تخصیص کاربر)
+// 📌 Assign task (only change assigned user)
 export const assignTask = async (req, res) => {
   try {
     const { userId } = req.body;
@@ -99,17 +98,13 @@ export const assignTask = async (req, res) => {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // فقط اگر کاربر تغییر کرده، پیام ارسال شود
     if (String(task.assignedTo) !== String(userId)) {
       task.assignedTo = userId;
       task.assignedUserName = `${user.firstName} ${user.lastName}`;
 
       await task.save();
-
-      // 📌 ارسال پیام اتوماتیک
-      await sendTaskAssignedMessage(task);
+      await sendTaskAssignedMessage(task, req.user._id);
     } else {
-      // اگر تغییر نکرده، فقط ذخیره می‌کنیم بدون ارسال پیام
       await task.save();
     }
 
@@ -118,26 +113,26 @@ export const assignTask = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-// 📌 حذف تسک
+
+// 📌 Delete task
 export const deleteTask = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
-    if (!task) {
-      return res.status(404).json({ message: "Task not found" });
-    }
+    if (!task) return res.status(404).json({ message: "Task not found" });
 
-    await task.deleteOne(); // حذف تسک از دیتابیس
+    await task.deleteOne();
     res.status(200).json({ message: "Task deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
+// 📌 Get task by ID
 export const getTaskById = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id)
       .populate("assignedTo", "firstName lastName email")
-      .populate("project", "name description");
+      .populate("projectId", "name description");
 
     if (!task) return res.status(404).json({ message: "Task not found" });
 
@@ -147,43 +142,37 @@ export const getTaskById = async (req, res) => {
   }
 };
 
+// 📌 Get all tasks with filters
 export const getTasks = async (req, res) => {
   try {
     const { status, projectId, assignedTo, types } = req.query;
-
     let filter = {};
 
     if (status) filter.status = status;
-    if (projectId) filter.projectId = projectId; // توجه کن projectId هست، نه project
+    if (projectId) filter.projectId = projectId;
     if (types) filter.types = types;
 
-    // حالا نقش کاربر رو چک کنیم:
     if (req.user.role === "admin") {
-      // admin: همه تسک‌ها رو میاره
-      if (assignedTo) {
-        // اگه فیلتر assignedTo هم بود اعمالش کن
-        filter.assignedTo = assignedTo;
-      }
+      if (assignedTo) filter.assignedTo = assignedTo;
     } else {
-      // user: فقط تسک‌هایی که به خودش اختصاص داره
       filter.assignedTo = req.user._id;
     }
 
     const tasks = await Task.find(filter)
       .populate("assignedTo", "firstName lastName email")
-      .populate("projectId", "name"); // تو مدل پروژه با projectId ذخیره شده
+      .populate("projectId", "name");
 
     res.json(tasks);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
-// 📌 تغییر وضعیت تسک به صورت جداگانه
+
+// 📌 Update task status
 export const updateTaskStatus = async (req, res) => {
   try {
     const { status } = req.body;
     const allowedStatuses = ["pending", "in-progress", "completed"];
-
     if (!allowedStatuses.includes(status)) {
       return res.status(400).json({ message: "Invalid status value" });
     }
@@ -200,7 +189,7 @@ export const updateTaskStatus = async (req, res) => {
   }
 };
 
-//search according title and description
+// 📌 Search tasks by title or description
 export const searchTasks = async (req, res) => {
   try {
     const { query } = req.query;
@@ -213,22 +202,15 @@ export const searchTasks = async (req, res) => {
       ],
     };
 
-    if (req.user.role !== "admin") {
-      filter.assignedTo = req.user._id;
-    }
-
-    console.log("Search query:", query);
-    console.log("Mongo filter:", JSON.stringify(filter, null, 2));
+    if (req.user.role !== "admin") filter.assignedTo = req.user._id;
 
     const tasks = await Task.find(filter)
       .populate("assignedTo", "firstName lastName email")
       .populate("projectId", "name");
 
-    console.log("Tasks found:", tasks.length);
     res.json(tasks);
   } catch (error) {
-    console.error("Error in searchTasks:", error);
     res.status(500).json({ message: error.message });
   }
 };
-//test
+//tt
