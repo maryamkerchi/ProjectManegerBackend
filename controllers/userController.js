@@ -8,26 +8,24 @@ const generateToken = (id, role) => {
 // register user
 export const registerUser = async (req, res) => {
   try {
+    console.log("BODY:", req.body); // ← اینجا اول
     const { firstName, lastName, email, password, role, avatar } = req.body;
-
-    // ایمیل همیشه lowercase ذخیره شود
-    const emailLower = email.toLowerCase();
-
-    // بررسی وجود کاربر
-    const userExists = await User.findOne({ email: emailLower });
+    const userExists = await User.findOne({ email });
     if (userExists)
-      return res.status(400).json({ message: "This user already exists" });
-
-    // فقط یکبار پاسورد plain به مدل می‌دهیم؛ pre-save hook خودش hash می‌کند
+      return res.status(400).json({ message: "This User already exists" });
+    // hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+    // create new record in db
     const user = await User.create({
       firstName,
       lastName,
-      email: emailLower,
-      password, // بدون hash
+      email,
+      password: hashedPassword,
       role: role || "user",
       avatar,
     });
-
+    // return data and JWT to client
     res.status(201).json({
       _id: user._id,
       firstName: user.firstName,
@@ -45,10 +43,8 @@ export const registerUser = async (req, res) => {
 export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const emailLower = email.toLowerCase();
-
-    const user = await User.findOne({ email: emailLower });
-    if (user && (await user.matchPassword(password))) {
+    const user = await User.findOne({ email });
+    if (user && (await bcrypt.compare(password, user.password))) {
       res.json({
         _id: user._id,
         firstName: user.firstName,
@@ -84,28 +80,26 @@ export const getUserById = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-//update user
+// update user info
 export const updateUser = async (req, res) => {
   try {
     const { firstName, lastName, role, avatar, password } = req.body;
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: "User not found" });
-
     user.firstName = firstName || user.firstName;
     user.lastName = lastName || user.lastName;
     user.role = role || user.role;
     user.avatar = avatar || user.avatar;
-
-    // فقط پسورد plain بدهید، مدل خودش hash می‌کند
+    // :small_blue_diamond: Handle password update
     if (password) {
-      user.password = password; // بدون bcrypt.hash
+      const salt = await bcrypt.genSalt(10);
+      user.password = await bcrypt.hash(password, salt);
+
+      // password should be hashed in your User model pre-save hook
     }
-
     const updatedUser = await user.save();
-
-    // در صورت نیاز می‌توانید token جدید بسازید
-    const token = generateToken(updatedUser._id, updatedUser.role);
-
+    // :small_blue_diamond: If password changed, issue new token
+    const token = generateToken(user._id);
     res.json({
       _id: updatedUser._id,
       firstName: updatedUser.firstName,
@@ -138,7 +132,7 @@ export const getOnlyUsers = async (req, res) => {
       "firstName lastName email role"
     );
     res.json(users);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };
