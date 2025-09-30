@@ -1,8 +1,9 @@
 import Task from "../models/tasks.js";
 import Project from "../models/projects.js";
 import User from "../models/users.js";
+import { sendTaskAssignedMessage } from "./messageController.js";
 
-// 📌 ایجاد تسک
+// Create task
 export const createTask = async (req, res) => {
   try {
     const {
@@ -16,18 +17,18 @@ export const createTask = async (req, res) => {
       status,
     } = req.body;
 
-    // بررسی پروژه
+    // Check if project exists
     const project = await Project.findById(projectId);
     if (!project) return res.status(404).json({ message: "Project not found" });
 
-    // اگر assignedTo مشخص شده، کاربر رو هم پیدا کن
+    // If assignedTo is provided, find user
     let user = null;
     if (assignedTo) {
       user = await User.findById(assignedTo);
       if (!user) return res.status(404).json({ message: "User not found" });
     }
 
-    // ایجاد تسک با ذخیره نام پروژه و نام کاربر اختصاص یافته
+    // Create task with project name and assigned user name
     const task = await Task.create({
       title,
       description,
@@ -40,6 +41,11 @@ export const createTask = async (req, res) => {
       types,
       status,
     });
+
+    //  Auto-send message
+    if (assignedTo) {
+      await sendTaskAssignedMessage(task);
+    }
 
     res.status(201).json(task);
   } catch (error) {
@@ -70,6 +76,9 @@ export const updateTask = async (req, res) => {
 
       task.assignedTo = assignedTo;
       task.assignedUserName = `${user.firstName} ${user.lastName}`;
+
+      // 📌 ارسال پیام اتوماتیک بعد از تغییر تخصیص
+      await sendTaskAssignedMessage(task);
     }
 
     const updatedTask = await task.save();
@@ -90,9 +99,19 @@ export const assignTask = async (req, res) => {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    task.assignedTo = userId;
-    task.assignedUserName = `${user.firstName} ${user.lastName}`;
-    await task.save();
+    // فقط اگر کاربر تغییر کرده، پیام ارسال شود
+    if (String(task.assignedTo) !== String(userId)) {
+      task.assignedTo = userId;
+      task.assignedUserName = `${user.firstName} ${user.lastName}`;
+
+      await task.save();
+
+      // 📌 ارسال پیام اتوماتیک
+      await sendTaskAssignedMessage(task);
+    } else {
+      // اگر تغییر نکرده، فقط ذخیره می‌کنیم بدون ارسال پیام
+      await task.save();
+    }
 
     res.json(task);
   } catch (error) {
