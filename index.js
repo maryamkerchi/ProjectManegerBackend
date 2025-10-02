@@ -10,8 +10,10 @@ import taskDetailRoutes from "./routes/taskDetailRoutes.js";
 import worklogRoutes from "./routes/worklogRoutes.js";
 import attachmentRoutes from "./routes/attachmentRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
+import openAIRoutes from "./routes/openAIRoutes.js";
 
 dotenv.config();
+console.log("HF_API_KEY:", process.env.HF_API_KEY ? "Loaded" : "Not loaded");
 connectDB();
 
 const app = express();
@@ -29,6 +31,7 @@ app.use("/api/taskDetail", taskDetailRoutes);
 app.use("/api/worklogs", worklogRoutes);
 app.use("/api/attachments", attachmentRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/ai", openAIRoutes);
 
 // Start server
 const PORT = process.env.PORT || 5000;

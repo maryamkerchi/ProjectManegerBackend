@@ -1,4 +1,4 @@
-//projectController.js
+// projectController.js
 import Project from "../models/projects.js";
 import User from "../models/users.js";
 import Attachment from "../models/attachments.js";
@@ -6,7 +6,17 @@ import Attachment from "../models/attachments.js";
 // create project (just admin)
 export const createProject = async (req, res) => {
   try {
-    const { name, description, members, status, attachments } = req.body;
+    const {
+      name,
+      description,
+      members,
+      status,
+      attachments,
+      startDate,
+      endDate,
+      estimatedDurationHours,
+      type,
+    } = req.body;
 
     if (!status) {
       return res.status(400).json({ message: "Status is required" });
@@ -16,8 +26,12 @@ export const createProject = async (req, res) => {
       name,
       description,
       status,
+      type,
+      startDate: startDate || null,
+      endDate: endDate || null,
+      estimatedDurationHours: estimatedDurationHours || 0,
       createdBy: req.user._id,
-      members: members || [], // ← همین خط مهم است
+      members: members || [],
       attachments: attachments || [],
     });
 
@@ -34,14 +48,14 @@ export const getProjects = async (req, res) => {
 
     if (req.user.role === "admin") {
       projects = await Project.find()
-        .populate("members", "firstName lastName email")
+        .populate("members", "firstName lastName email role")
         .populate("attachments")
-        .populate("createdBy", "firstName lastName email"); // اضافه شد
+        .populate("createdBy", "firstName lastName email");
     } else {
       projects = await Project.find({ members: req.user._id })
-        .populate("members", "firstName lastName email")
+        .populate("members", "firstName lastName email role")
         .populate("attachments")
-        .populate("createdBy", "firstName lastName email"); // اضافه شد
+        .populate("createdBy", "firstName lastName email");
     }
 
     res.json(projects);
@@ -54,7 +68,7 @@ export const getProjects = async (req, res) => {
 export const getProjectById = async (req, res) => {
   try {
     const project = await Project.findById(req.params.id)
-      .populate("members", "firstName lastName email role") // اضافه کردن role
+      .populate("members", "firstName lastName email role")
       .populate("createdBy", "firstName lastName email")
       .populate("attachments");
 
@@ -76,7 +90,16 @@ export const getProjectById = async (req, res) => {
 // update project
 export const updateProject = async (req, res) => {
   try {
-    const { name, description, status, members } = req.body; // اضافه شد members
+    const {
+      name,
+      description,
+      status,
+      members,
+      startDate,
+      endDate,
+      estimatedDurationHours,
+      type,
+    } = req.body;
 
     const validStatuses = ["pending", "in-progress", "completed"];
     const projectStatus = validStatuses.includes(status) ? status : undefined;
@@ -87,19 +110,22 @@ export const updateProject = async (req, res) => {
     project.name = name || project.name;
     project.description = description || project.description;
     if (projectStatus) project.status = projectStatus;
-
-    if (Array.isArray(members)) {
-      project.members = members; // اعضا هم آپدیت می‌شوند
-    }
+    if (Array.isArray(members)) project.members = members;
+    if (startDate) project.startDate = startDate;
+    if (endDate) project.endDate = endDate;
+    if (estimatedDurationHours !== undefined)
+      project.estimatedDurationHours = estimatedDurationHours;
+    if (type) project.type = type;
 
     const updatedProject = await project.save();
-    // populate members برای نمایش کامل در front-end
     await updatedProject.populate("members", "firstName lastName email");
+
     res.json(updatedProject);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
 // delete project
 export const deleteProject = async (req, res) => {
   try {
@@ -195,6 +221,7 @@ export const removeAttachmentFromProject = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
 // search projects by name or description
 export const searchProjects = async (req, res) => {
   try {
@@ -213,17 +240,15 @@ export const searchProjects = async (req, res) => {
     let projects;
 
     if (req.user.role === "admin") {
-      // admin see all projects
       projects = await Project.find(filter)
-        .populate("members", "firstName lastName email")
+        .populate("members", "firstName lastName email role")
         .populate("attachments");
     } else {
-      // user just see own project
       projects = await Project.find({
         ...filter,
         members: req.user._id,
       })
-        .populate("members", "firstName lastName email")
+        .populate("members", "firstName lastName email role")
         .populate("attachments");
     }
 
@@ -232,4 +257,3 @@ export const searchProjects = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-//test2

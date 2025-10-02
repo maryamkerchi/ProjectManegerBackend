@@ -15,20 +15,18 @@ export const createTask = async (req, res) => {
       dueDate,
       types,
       status,
+      estimatedDurationHours, // اضافه شد
     } = req.body;
 
-    // Check if project exists
     const project = await Project.findById(projectId);
     if (!project) return res.status(404).json({ message: "Project not found" });
 
-    // If assignedTo is provided, find user
     let user = null;
     if (assignedTo) {
       user = await User.findById(assignedTo);
       if (!user) return res.status(404).json({ message: "User not found" });
     }
 
-    // Create task with project name and assigned user name
     const task = await Task.create({
       title,
       description,
@@ -40,9 +38,9 @@ export const createTask = async (req, res) => {
       dueDate,
       types,
       status,
+      estimatedDurationHours: estimatedDurationHours || 0, // مقدار پیش‌فرض صفر
     });
 
-    // Auto-send message
     if (assignedTo) {
       await sendTaskAssignedMessage(task, req.user._id);
     }
@@ -56,8 +54,16 @@ export const createTask = async (req, res) => {
 // 📌 Update task
 export const updateTask = async (req, res) => {
   try {
-    const { title, description, priority, dueDate, types, status, assignedTo } =
-      req.body;
+    const {
+      title,
+      description,
+      priority,
+      dueDate,
+      types,
+      status,
+      assignedTo,
+      estimatedDurationHours, // اضافه شد
+    } = req.body;
 
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ message: "Task not found" });
@@ -68,8 +74,9 @@ export const updateTask = async (req, res) => {
     if (dueDate) task.dueDate = dueDate;
     if (types) task.types = types;
     if (status) task.status = status;
+    if (estimatedDurationHours !== undefined)
+      task.estimatedDurationHours = estimatedDurationHours;
 
-    // اگر assignedTo تغییر کرده، پیام اتوماتیک ارسال شود
     if (assignedTo && assignedTo !== String(task.assignedTo)) {
       const user = await User.findById(assignedTo);
       if (!user) return res.status(404).json({ message: "User not found" });
@@ -87,7 +94,7 @@ export const updateTask = async (req, res) => {
   }
 };
 
-// 📌 Assign task (only change assigned user)
+// 📌 Assign task
 export const assignTask = async (req, res) => {
   try {
     const { userId } = req.body;
@@ -131,7 +138,7 @@ export const deleteTask = async (req, res) => {
 export const getTaskById = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id)
-      .populate("assignedTo", "firstName lastName email")
+      .populate("assignedTo", "firstName lastName email role")
       .populate("projectId", "name description");
 
     if (!task) return res.status(404).json({ message: "Task not found" });
@@ -159,7 +166,7 @@ export const getTasks = async (req, res) => {
     }
 
     const tasks = await Task.find(filter)
-      .populate("assignedTo", "firstName lastName email")
+      .populate("assignedTo", "firstName lastName email role")
       .populate("projectId", "name");
 
     res.json(tasks);
@@ -205,7 +212,7 @@ export const searchTasks = async (req, res) => {
     if (req.user.role !== "admin") filter.assignedTo = req.user._id;
 
     const tasks = await Task.find(filter)
-      .populate("assignedTo", "firstName lastName email")
+      .populate("assignedTo", "firstName lastName email role")
       .populate("projectId", "name");
 
     res.json(tasks);
@@ -213,4 +220,3 @@ export const searchTasks = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-//ttt
