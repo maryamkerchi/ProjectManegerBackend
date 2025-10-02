@@ -1,5 +1,7 @@
+// users.js
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
+
 const userSchema = new mongoose.Schema(
   {
     firstName: { type: String, required: true },
@@ -8,10 +10,33 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true },
     role: { type: String, enum: ["admin", "user"], default: "user" },
     avatar: { type: String },
+
+    // فیلدهای جدید برای تحلیل AI
+    technicalSkills: [
+      {
+        type: String,
+        enum: [
+          "tester",
+          "backend programmer",
+          "frontend programmer",
+          "UI/UX",
+          "DevOps",
+          "R&D",
+          "Other",
+        ],
+      },
+    ],
+    weeklyCapacityHours: { type: Number, default: 40 }, // ظرفیت کاری در هفته به ساعت
+    skillLevel: {
+      type: String,
+      enum: ["junior", "mid", "senior", "expert"],
+      default: "junior",
+    },
   },
   { timestamps: true }
 );
-// :small_blue_diamond: Hash password before saving
+
+// Hash password before saving
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   try {
@@ -23,11 +48,10 @@ userSchema.pre("save", async function (next) {
   }
 });
 
-const User = mongoose.model("User", userSchema);
-
-//  Add a helper to check passwords during login
+// Helper برای بررسی رمز عبور
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
+
+const User = mongoose.model("User", userSchema);
 export default User;
-//nnnn

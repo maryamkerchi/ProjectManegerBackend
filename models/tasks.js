@@ -11,7 +11,6 @@ const taskSchema = new mongoose.Schema(
     title: { type: String, required: true },
     description: String,
 
-    // ذخیره شناسه پروژه + نام پروژه
     projectId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Project",
@@ -22,7 +21,6 @@ const taskSchema = new mongoose.Schema(
       required: true,
     },
 
-    // ذخیره شناسه کاربر اختصاص یافته + نام کامل کاربر
     assignedTo: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -44,9 +42,10 @@ const taskSchema = new mongoose.Schema(
     },
 
     dueDate: Date,
+
+    estimatedDurationHours: Number,
   },
   { timestamps: true }
 );
 
-// جلوگیری از خطای OverwriteModelError
 export default mongoose.models.Task || mongoose.model("Task", taskSchema);
