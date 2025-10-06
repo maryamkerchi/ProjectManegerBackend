@@ -1,54 +1,47 @@
 // aiAssistantController.js
 import OpenAI from "openai";
-import { createTaskService } from "../Services/taskService.js";
 import Project from "../models/projects.js";
 import Task from "../models/tasks.js";
 import User from "../models/users.js";
-import Worklog from "../models/worklogs.js";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export const aiAssistant = async (req, res) => {
   try {
-    const { userMessage } = req.body;
+    const { userMessage, projectName } = req.body;
 
-    const projects = await Project.find({});
-    const tasks = await Task.find({});
-    const users = await User.find({});
-    const worklogs = await Worklog.find({}); // ⬅️ استفاده برای بارکاری
+    if (!projectName)
+      return res.status(400).json({ error: "Project name is required" });
 
+    // پیدا کردن پروژه
+    const project = await Project.findOne({ name: projectName }).populate(
+      "members",
+      "firstName lastName email role"
+    );
+    if (!project) return res.status(404).json({ error: "Project not found" });
+
+    // فقط کاربران پروژه
+    const users = await User.find({
+      _id: { $in: project.members.map((m) => m._id) },
+    });
+
+    // فقط تسک‌های پروژه
+    const tasks = await Task.find({ projectId: project._id });
+
+    // prompt محدود و بدون داده‌های اضافی بزرگ
     const prompt = `
 You are a smart project management assistant.
 Your responsibilities:
-- Answer the user's questions clearly.
-- Suggest tasks with proper assignment and due dates.
-- Only assign tasks to members of the corresponding project.
-- Consider user workloads from worklogs when assigning tasks (avoid overloading busy users).
-- Provide JSON tasks in this exact format:
-
-[
-  {
-    "title": "Task title",
-    "description": "Task description",
-    "projectId": "project ObjectId",
-    "assignedTo": "user ObjectId",
-    "types": "Support|Training|Monitoring|Production|R&D",
-    "priority": "low|medium|high",
-    "status": "pending|in-progress|completed",
-    "dueDate": "YYYY-MM-DD",
-    "estimatedDurationHours": number
-  }
-]
+- Suggest tasks for the project based on current tasks and team workload.
+- Assign tasks only to project members.
+- Output the suggested tasks in a clear, readable format for a user (do NOT include raw JSON).
+- Include: task title, description, suggested assignee, priority, due date, estimated hours.
 
 User message: "${userMessage}"
-
-Projects: ${JSON.stringify(projects, null, 2)}
-Users: ${JSON.stringify(users, null, 2)}
-Tasks: ${JSON.stringify(tasks, null, 2)}
-Worklogs: ${JSON.stringify(worklogs, null, 2)}
+Project name: "${project.name}"
 `;
 
-    // request to AI
+    // درخواست به OpenAI
     const response = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
       messages: [{ role: "user", content: prompt }],
@@ -56,29 +49,9 @@ Worklogs: ${JSON.stringify(worklogs, null, 2)}
 
     const aiReply = response.choices[0].message.content;
 
-    // get tasks json
-    let suggestedTasks = [];
-    try {
-      const jsonMatch = aiReply.match(/\[.*\]/s);
-      if (jsonMatch) suggestedTasks = JSON.parse(jsonMatch[0]);
-    } catch (err) {
-      console.log("No tasks suggested or JSON parse failed");
-    }
-
-    // create task
-    const createdTasks = [];
-    for (const taskData of suggestedTasks) {
-      try {
-        const task = await createTaskService(taskData, req.user._id);
-        createdTasks.push(task);
-      } catch (err) {
-        console.error("Task creation failed:", err.message);
-      }
-    }
-
+    // فقط متن قابل نمایش به کاربر برمی‌گردد، تسک‌ها هنوز ساخته نشده‌اند
     res.json({
-      message: aiReply,
-      createdTasks,
+      suggestedTasksText: aiReply,
     });
   } catch (err) {
     console.error(err);

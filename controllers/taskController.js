@@ -16,7 +16,8 @@ export const createTask = async (req, res) => {
       dueDate,
       types,
       status,
-      estimatedDurationHours, // اضافه شد
+      estimatedDurationHours,
+      // اضافه شد
     } = req.body;
 
     const project = await Project.findById(projectId);
