@@ -11,6 +11,7 @@ import worklogRoutes from "./routes/worklogRoutes.js";
 import attachmentRoutes from "./routes/attachmentRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
 import openAIRoutes from "./routes/openAIRoutes.js";
+import aiAssistantRoutes from "./routes/aiAssistantRoutes.js";
 
 dotenv.config();
 console.log("HF_API_KEY:", process.env.HF_API_KEY ? "Loaded" : "Not loaded");
@@ -33,7 +34,9 @@ app.use("/api/worklogs", worklogRoutes);
 app.use("/api/attachments", attachmentRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/ai", openAIRoutes);
+app.use("/api/ai", aiAssistantRoutes);
 
 // Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+//m
