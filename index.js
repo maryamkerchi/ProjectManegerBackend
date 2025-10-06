@@ -19,8 +19,9 @@ connectDB();
 const app = express();
 
 // Middleware
-app.use(express.json());
 app.use(corsMiddleware);
+app.use(express.json());
+
 //upload
 app.use("/uploads", express.static("uploads"));
 // Routes
