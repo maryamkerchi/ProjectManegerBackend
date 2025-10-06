@@ -20,8 +20,9 @@ connectDB();
 const app = express();
 
 // Middleware
-app.use(express.json());
 app.use(corsMiddleware);
+app.use(express.json());
+
 //upload
 app.use("/uploads", express.static("uploads"));
 // Routes
@@ -38,3 +39,4 @@ app.use("/api/ai", aiAssistantRoutes);
 // Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+//m
